@@ -1,0 +1,348 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+
+enum Role {
+  ADMIN
+  MANAGER
+  WAITER
+  KITCHEN_STAFF
+  BAR_STAFF
+  CASHIER
+  RECEPTIONIST
+}
+
+enum ItemType {
+  FOOD
+  DRINK
+  ROOM_SERVICE
+  ACCOMMODATION
+}
+
+enum OrderStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum OrderItemStatus {
+  PENDING
+  PREPARING
+  READY
+  DELIVERED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+}
+
+enum RoomStatus {
+  AVAILABLE
+  OCCUPIED
+  CLEANING
+  RESERVED
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum RequestType {
+  LEAVING
+  PURCHASE
+  REPAIR
+  STOCK
+  CASH
+  MAINTENANCE
+  OTHER
+}
+
+enum AssetStatus {
+  OPERATIONAL
+  MAINTENANCE
+  REPAIR
+  DISPOSED
+  LOST
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  name      String
+  role      Role     @default(WAITER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders         Order[]        @relation("OrderCreator")
+  cashierOrders  Order[]        @relation("OrderCashier")
+  purchases      Purchase[]
+  staffRequests  StaffRequest[]
+  preparedItems  OrderItem[]    @relation("Preparer")
+  inventoryActions StockMovement[]
+  supplierPayments SupplierPayment[]
+  statusLogs     RoomStatusLog[]
+  expenses       Expense[]
+}
+
+model MenuItem {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  price       Float
+  type        ItemType @default(FOOD)
+  categoryId  Int
+  category    MenuCategory @relation(fields: [categoryId], references: [id])
+  available   Boolean  @default(true)
+  stockQuantity Int    @default(0)
+  trackStock    Boolean @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  orderItems OrderItem[]
+  recipes    Recipe[]
+}
+
+model MenuCategory {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  items MenuItem[]
+}
+
+model Order {
+  id            Int           @id @default(autoincrement())
+  tableNumber   String?
+  totalAmount   Float         @default(0)
+  status        OrderStatus   @default(PENDING)
+  paymentStatus PaymentStatus @default(UNPAID)
+  paymentMethod String?
+  userId        Int
+  user          User          @relation("OrderCreator", fields: [userId], references: [id])
+  cashierId     Int?
+  cashier       User?         @relation("OrderCashier", fields: [cashierId], references: [id])
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  items OrderItem[]
+  payments SplitPayment[]
+}
+
+model SplitPayment {
+  id        Int      @id @default(autoincrement())
+  orderId   Int
+  order     Order    @relation(fields: [orderId], references: [id])
+  method    String   @default("CASH") // CASH, MOMO, CARD, BANK
+  amount    Float
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
+}
+
+model OrderItem {
+  id          Int             @id @default(autoincrement())
+  orderId     Int
+  order       Order           @relation(fields: [orderId], references: [id])
+  menuItemId  Int
+  menuItem    MenuItem        @relation(fields: [menuItemId], references: [id])
+  quantity    Int
+  status      OrderItemStatus @default(PENDING)
+  preparedById Int?
+  preparedBy  User?           @relation("Preparer", fields: [preparedById], references: [id])
+  preparingAt DateTime?
+  readyAt     DateTime?
+  deliveredAt DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model Expense {
+  id          Int            @id @default(autoincrement())
+  title       String
+  amount      Float
+  category    String         @default("General")
+  status      ApprovalStatus @default(PENDING)
+  userId      Int
+  user        User           @relation(fields: [userId], references: [id])
+  date        DateTime       @default(now())
+  description String?
+  reviewedAt  DateTime?
+  decisionNote String?
+  createdAt   DateTime       @default(now())
+}
+
+model Room {
+  id               Int        @id @default(autoincrement())
+  number           String     @unique
+  type             String
+  price            Float
+  status           RoomStatus @default(AVAILABLE)
+  currentCheckIn   DateTime?
+  expectedCheckOut DateTime?
+  lastStatusChange DateTime?  @default(now())
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  statusLogs       RoomStatusLog[]
+}
+
+model RoomStatusLog {
+  id         Int        @id @default(autoincrement())
+  roomId     Int
+  room       Room       @relation(fields: [roomId], references: [id])
+  oldStatus  RoomStatus?
+  newStatus  RoomStatus
+  userId     Int
+  user       User       @relation(fields: [userId], references: [id])
+  createdAt  DateTime   @default(now())
+}
+
+model Purchase {
+  id          Int      @id @default(autoincrement())
+  title       String
+  amount      Float
+  status      ApprovalStatus @default(PENDING)
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+  description String?
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+}
+
+model StaffRequest {
+  id        Int            @id @default(autoincrement())
+  type      RequestType    @default(OTHER)
+  title     String
+  reason    String
+  status    ApprovalStatus @default(PENDING)
+  userId    Int
+  user      User           @relation(fields: [userId], references: [id])
+  date      DateTime       @default(now())
+  createdAt DateTime       @default(now())
+}
+// --- NEW INVENTORY MODULE MODELS ---
+
+enum MovementType {
+  STOCK_IN
+  STOCK_OUT
+  ADJUSTMENT
+  WASTAGE
+}
+
+model Supplier {
+  id        Int      @id @default(autoincrement())
+  name      String
+  phone     String?
+  email     String?
+  address   String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  stockMovements StockMovement[]
+  inventoryItems InventoryItem[] @relation("PreferredSupplier")
+  payments       SupplierPayment[]
+}
+
+model SupplierPayment {
+  id          Int      @id @default(autoincrement())
+  supplierId  Int
+  supplier    Supplier @relation(fields: [supplierId], references: [id])
+  amount      Float
+  method      String   @default("CASH") // CASH, MOMO, BANK
+  reference   String?
+  notes       String?
+  
+  createdById Int
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+}
+
+model InventoryItem {
+  id            Int      @id @default(autoincrement())
+  name          String
+  sku           String?  @unique
+  category      String   @default("General") // e.g. Raw Material, Cleaning, Stationary
+  unit          String   @default("piece") // kg, litre, bottle, piece, box
+  currentStock  Float    @default(0)
+  minimumStock  Float    @default(0)
+  costPrice     Float    @default(0)
+  sellingReferencePrice Float?
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  preferredSupplierId Int?
+  preferredSupplier   Supplier? @relation("PreferredSupplier", fields: [preferredSupplierId], references: [id])
+
+  movements StockMovement[]
+  recipes   Recipe[]
+}
+
+model StockMovement {
+  id              Int          @id @default(autoincrement())
+  inventoryItemId Int
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  type            MovementType
+  quantity        Float
+  unitCost        Float?
+  reason          String?
+  referenceType   String?      // e.g. PO, SALE, MANUAL
+  referenceId     String?
+  
+  supplierId      Int?
+  supplier        Supplier?    @relation(fields: [supplierId], references: [id])
+
+  createdById     Int
+  createdBy       User         @relation(fields: [createdById], references: [id])
+  paymentStatus   PaymentStatus @default(PAID)
+  paidAmount      Float?        // if partially paid
+  paymentMethod   String       @default("CASH") // CASH, MOMO, BANK, CREDIT
+  createdAt       DateTime     @default(now())
+}
+
+model Recipe {
+  id              Int           @id @default(autoincrement())
+  menuItemId      Int
+  menuItem        MenuItem      @relation(fields: [menuItemId], references: [id])
+  inventoryItemId Int
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  quantityNeeded  Float         // amount of inventory item per menu item
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([menuItemId, inventoryItemId])
+}
+
+model Asset {
+  id              Int         @id @default(autoincrement())
+  name            String
+  category        String      // Electronics, Furniture, Vehicle, Kitchen Equipment, Housekeeping
+  serialNumber    String?     @unique
+  purchaseDate    DateTime?
+  purchasePrice   Float       @default(0)
+  currentValue    Float?      
+  location        String?     
+  status          AssetStatus @default(OPERATIONAL)
+  conditionNote   String?
+  lastMaintenance DateTime?
+  nextMaintenance DateTime?
+  
+  description     String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+

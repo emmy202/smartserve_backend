@@ -1,0 +1,97 @@
+import { AssetsService } from './assets.service';
+export declare class AssetsController {
+    private readonly assetsService;
+    constructor(assetsService: AssetsService);
+    findAll(): Promise<{
+        name: string;
+        createdAt: Date;
+        updatedAt: Date;
+        id: number;
+        category: string;
+        description: string | null;
+        status: import("@prisma/client").$Enums.AssetStatus;
+        serialNumber: string | null;
+        purchaseDate: Date | null;
+        purchasePrice: number;
+        currentValue: number | null;
+        location: string | null;
+        conditionNote: string | null;
+        lastMaintenance: Date | null;
+        nextMaintenance: Date | null;
+    }[]>;
+    getStats(): Promise<{
+        total: number;
+        operational: number;
+        maintenance: number;
+        repair: number;
+        totalValue: number;
+    }>;
+    findOne(id: number): Promise<{
+        name: string;
+        createdAt: Date;
+        updatedAt: Date;
+        id: number;
+        category: string;
+        description: string | null;
+        status: import("@prisma/client").$Enums.AssetStatus;
+        serialNumber: string | null;
+        purchaseDate: Date | null;
+        purchasePrice: number;
+        currentValue: number | null;
+        location: string | null;
+        conditionNote: string | null;
+        lastMaintenance: Date | null;
+        nextMaintenance: Date | null;
+    } | null>;
+    create(data: any): Promise<{
+        name: string;
+        createdAt: Date;
+        updatedAt: Date;
+        id: number;
+        category: string;
+        description: string | null;
+        status: import("@prisma/client").$Enums.AssetStatus;
+        serialNumber: string | null;
+        purchaseDate: Date | null;
+        purchasePrice: number;
+        currentValue: number | null;
+        location: string | null;
+        conditionNote: string | null;
+        lastMaintenance: Date | null;
+        nextMaintenance: Date | null;
+    }>;
+    update(id: number, data: any): Promise<{
+        name: string;
+        createdAt: Date;
+        updatedAt: Date;
+        id: number;
+        category: string;
+        description: string | null;
+        status: import("@prisma/client").$Enums.AssetStatus;
+        serialNumber: string | null;
+        purchaseDate: Date | null;
+        purchasePrice: number;
+        currentValue: number | null;
+        location: string | null;
+        conditionNote: string | null;
+        lastMaintenance: Date | null;
+        nextMaintenance: Date | null;
+    } | null>;
+    remove(id: number): Promise<{
+        name: string;
+        createdAt: Date;
+        updatedAt: Date;
+        id: number;
+        category: string;
+        description: string | null;
+        status: import("@prisma/client").$Enums.AssetStatus;
+        serialNumber: string | null;
+        purchaseDate: Date | null;
+        purchasePrice: number;
+        currentValue: number | null;
+        location: string | null;
+        conditionNote: string | null;
+        lastMaintenance: Date | null;
+        nextMaintenance: Date | null;
+    } | null>;
+}
