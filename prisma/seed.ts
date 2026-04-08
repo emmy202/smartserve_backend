@@ -7,6 +7,13 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Seeding database with Forensic Intelligence...');
 
+  // Check if database is already seeded
+  const userCount = await prisma.user.count();
+  if (userCount > 0) {
+    console.log('✨ Database already has data. Skipping seed.');
+    return;
+  }
+
   // 1. CLEAR OLD DATA (Order matters for relations)
   await prisma.orderItem.deleteMany();
   await prisma.order.deleteMany();
