@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards, Request, Query } from '@nestjs/common';
 import { ExpensesService } from './expenses.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -11,15 +11,13 @@ export class ExpensesController {
   constructor(private readonly expensesService: ExpensesService) {}
 
   @Post()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.CASHIER, Role.WAITER)
   create(@Request() req: any, @Body() body: { title: string, amount: number, category?: string, description?: string }) {
     return this.expensesService.create(req.user.id, body.title, body.amount, body.category, body.description);
   }
 
   @Get()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.CASHIER)
-  findAll() {
-    return this.expensesService.findAll();
+  findAll(@Query('start') start?: string, @Query('end') end?: string) {
+    return this.expensesService.findAll(start, end);
   }
 
   @Get('my')

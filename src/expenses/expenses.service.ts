@@ -18,8 +18,16 @@ export class ExpensesService {
     });
   }
 
-  async findAll() {
+  async findAll(start?: string, end?: string) {
+    const where: any = {};
+    if (start && end) {
+      where.createdAt = {
+        gte: new Date(start),
+        lte: new Date(end)
+      };
+    }
     return this.prisma.expense.findMany({
+      where,
       include: { user: { select: { name: true, role: true } } },
       orderBy: { createdAt: 'desc' }
     });

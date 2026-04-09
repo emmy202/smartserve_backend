@@ -12,13 +12,12 @@ export class OrdersController {
 
   @Roles(Role.ADMIN, Role.MANAGER, Role.WAITER, Role.CASHIER)
   @Post()
-  create(@Request() req: any, @Body() body: { tableNumber: string, items: { menuItemId: number, quantity: number }[] }) {
+  create(@Request() req: any, @Body() body: { tableNumber: string, items: { menuItemId: number, quantity: number, notes?: string }[] }) {
     return this.ordersService.createOrder(req.user.id, body.tableNumber, body.items);
   }
 
   @Roles(Role.ADMIN, Role.MANAGER, Role.WAITER, Role.CASHIER)
-  @Post(':id/items')
-  addItems(@Param('id', ParseIntPipe) id: number, @Body() body: { items: { menuItemId: number, quantity: number }[] }) {
+  addItems(@Param('id', ParseIntPipe) id: number, @Body() body: { items: { menuItemId: number, quantity: number, notes?: string }[] }) {
     return this.ordersService.addItemsToOrder(id, body.items);
   }
 

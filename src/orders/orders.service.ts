@@ -5,7 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 export class OrdersService {
   constructor(private prisma: PrismaService) {}
 
-  async createOrder(userId: number, tableNumber: string | null, items: { menuItemId: number, quantity: number }[]) {
+  async createOrder(userId: number, tableNumber: string | null, items: { menuItemId: number, quantity: number, notes?: string }[]) {
     // Calculate total amount
     let totalAmount = 0;
     for (const item of items) {
@@ -34,7 +34,8 @@ export class OrdersService {
         items: {
           create: items.map(i => ({
             menuItemId: i.menuItemId,
-            quantity: i.quantity
+            quantity: i.quantity,
+            notes: i.notes
           }))
         }
       },
@@ -90,7 +91,7 @@ export class OrdersService {
     return order;
   }
 
-  async addItemsToOrder(orderId: number, items: { menuItemId: number, quantity: number }[]) {
+  async addItemsToOrder(orderId: number, items: { menuItemId: number, quantity: number, notes?: string }[]) {
     let additionalAmount = 0;
     for (const item of items) {
       const menuItem = await this.prisma.menuItem.findUnique({ where: { id: item.menuItemId } });
@@ -114,7 +115,8 @@ export class OrdersService {
         items: {
           create: items.map(i => ({
             menuItemId: i.menuItemId,
-            quantity: i.quantity
+            quantity: i.quantity,
+            notes: i.notes
           }))
         }
       },

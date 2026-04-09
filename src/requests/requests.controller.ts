@@ -15,7 +15,6 @@ export class RequestsController {
     return this.requestsService.create(req.user.id, body.type, body.title, body.reason);
   }
 
-  @Roles(Role.ADMIN, Role.MANAGER)
   @Get()
   findAll() {
     return this.requestsService.findAll();
