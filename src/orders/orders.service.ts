@@ -300,6 +300,71 @@ export class OrdersService {
     return this.prisma.order.update({ where: { id }, data: { status } });
   }
 
+  async cancelOrder(id: number, userId: number) {
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+      include: { items: true }
+    });
+
+    if (!order) throw new Error('Order not found');
+    if (order.paymentStatus === 'PAID') throw new Error('Cannot cancel a paid order');
+    if (order.status === 'CANCELLED') return order;
+
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Mark order as cancelled
+      const cancelledOrder = await (tx as any).order.update({
+        where: { id },
+        data: { status: 'CANCELLED' }
+      });
+
+      // 2. Return stock for each item
+      for (const item of order.items) {
+        const recipes = await (tx as any).recipe.findMany({
+          where: { menuItemId: item.menuItemId }
+        });
+
+        if (recipes.length > 0) {
+          for (const recipe of recipes) {
+            const qtyToReturn = recipe.quantityNeeded * item.quantity;
+            
+            // Restore global inventory
+            await (tx as any).inventoryItem.update({
+              where: { id: recipe.inventoryItemId },
+              data: { currentStock: { increment: qtyToReturn } }
+            });
+
+            // Record as STOCK_IN movement (Void/Cancel)
+            await (tx as any).stockMovement.create({
+              data: {
+                inventoryItemId: recipe.inventoryItemId,
+                type: 'STOCK_IN',
+                quantity: qtyToReturn,
+                reason: `Order Cancelled: #${order.id}`,
+                createdById: userId,
+                referenceType: 'ORDER',
+                referenceId: order.id.toString()
+              }
+            });
+          }
+        } else {
+          // Legacy Fallback: Update stock on MenuItem itself
+          const menuItem = await tx.menuItem.findUnique({ where: { id: item.menuItemId } });
+          if (menuItem && (menuItem as any).trackStock) {
+            await tx.menuItem.update({
+              where: { id: menuItem.id },
+              data: { 
+                stockQuantity: { increment: item.quantity },
+                available: true
+              } as any
+            });
+          }
+        }
+      }
+
+      return cancelledOrder;
+    });
+  }
+
   async updateOrderItemStatus(itemId: number, status: any, userId: number) {
     const data: any = { status };
     if (status === 'PREPARING') {
@@ -364,15 +429,21 @@ export class OrdersService {
         createdAt: { gte: startDate, lte: endDate },
         order: { status: { not: 'CANCELLED' } }
       },
-      include: { menuItem: true }
+      include: { menuItem: { include: { category: true } } }
     });
 
     const reportMap = new Map();
-
+    
     orderItems.forEach(oi => {
-      const existing = reportMap.get(oi.menuItemId) || {
+      const dateKey = oi.createdAt.toISOString().split('T')[0];
+      const compositeKey = `${dateKey}_${oi.menuItemId}`;
+      
+      const existing = reportMap.get(compositeKey) || {
+        date: dateKey,
         id: oi.menuItemId,
         name: oi.menuItem.name,
+        category: (oi.menuItem as any).category?.name || 'Uncategorized',
+        unitPrice: oi.menuItem.price,
         type: oi.menuItem.type,
         sold: 0,
         revenue: 0,
@@ -380,10 +451,13 @@ export class OrdersService {
       };
       existing.sold += oi.quantity;
       existing.revenue += oi.quantity * oi.menuItem.price;
-      reportMap.set(oi.menuItemId, existing);
+      reportMap.set(compositeKey, existing);
     });
 
-    return Array.from(reportMap.values());
+    return Array.from(reportMap.values()).sort((a: any, b: any) => {
+      if (b.date !== a.date) return b.date.localeCompare(a.date);
+      return b.revenue - a.revenue;
+    });
   }
 
   async getDailySummary(cashierId?: number) {

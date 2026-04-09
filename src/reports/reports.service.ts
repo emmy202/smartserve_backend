@@ -13,7 +13,8 @@ export class ReportsService {
       _sum: { totalAmount: true },
       where: {
         createdAt: { gte: start, lte: end },
-        paymentStatus: 'PAID'
+        paymentStatus: 'PAID',
+        status: { not: 'CANCELLED' }
       }
     });
 
@@ -21,7 +22,8 @@ export class ReportsService {
       _sum: { totalAmount: true },
       where: {
         createdAt: { gte: start, lte: end },
-        paymentStatus: 'UNPAID'
+        paymentStatus: 'UNPAID',
+        status: { not: 'CANCELLED' }
       }
     });
 
@@ -261,7 +263,10 @@ export class ReportsService {
     const salesByStatus = await this.prisma.order.groupBy({
       by: ['paymentStatus'],
       _sum: { totalAmount: true },
-      where: { createdAt: { gte: start, lte: end }, status: { not: 'CANCELLED' } }
+      where: { 
+        createdAt: { gte: start, lte: end }, 
+        status: { not: 'CANCELLED' } 
+      }
     });
 
     return {

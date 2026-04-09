@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Put, UseGuards, Request, Query, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards, Request, Query, ParseIntPipe } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -58,10 +58,16 @@ export class OrdersController {
     return this.ordersService.getInventoryReport(new Date(start), new Date(end));
   }
 
-  @Roles(Role.ADMIN, Role.MANAGER, Role.KITCHEN_STAFF, Role.BAR_STAFF)
+  @Roles(Role.ADMIN, Role.MANAGER, Role.WAITER, Role.CASHIER)
   @Put(':id/status')
   updateStatus(@Param('id', ParseIntPipe) id: number, @Body('status') status: any) {
     return this.ordersService.updateOrderStatus(id, status);
+  }
+
+  @Roles(Role.ADMIN, Role.MANAGER, Role.WAITER)
+  @Delete(':id')
+  cancel(@Request() req: any, @Param('id', ParseIntPipe) id: number) {
+    return this.ordersService.cancelOrder(id, req.user.id);
   }
 
   @Roles(Role.ADMIN, Role.MANAGER, Role.KITCHEN_STAFF, Role.BAR_STAFF)
