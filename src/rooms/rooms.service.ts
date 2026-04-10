@@ -11,7 +11,11 @@ export class RoomsService {
   }
 
   async findAll() {
-    return this.prisma.room.findMany();
+    return this.prisma.room.findMany({
+      include: {
+        category: true
+      }
+    });
   }
 
   async findOne(id: number) {
@@ -58,9 +62,9 @@ export class RoomsService {
 
     if (isNewOccupancy) {
       // Ensure we have an Accommodation category
-      let category = await this.prisma.menuCategory.findUnique({ where: { name: 'Accommodation' } });
+      let category = await this.prisma.category.findFirst({ where: { name: 'Accommodation', type: 'MENU' } });
       if (!category) {
-        category = await this.prisma.menuCategory.create({ data: { name: 'Accommodation' } });
+        category = await this.prisma.category.create({ data: { name: 'Accommodation', type: 'MENU' } });
       }
 
       // Ensure we have a Room Stay menu item

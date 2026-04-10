@@ -13,9 +13,10 @@ import { ReportsModule } from './reports/reports.module';
 import { InventoryModule } from './inventory/inventory.module';
 import { QueueGateway } from './queue/queue.gateway';
 import { AssetsModule } from './assets/assets.module';
+import { CategoriesModule } from './categories/categories.module';
 
 @Module({
-  imports: [PrismaModule, UsersModule, AuthModule, MenuModule, OrdersModule, RoomsModule, ExpensesModule, RequestsModule, ReportsModule, InventoryModule, AssetsModule],
+  imports: [PrismaModule, UsersModule, AuthModule, MenuModule, OrdersModule, RoomsModule, ExpensesModule, RequestsModule, ReportsModule, InventoryModule, AssetsModule, CategoriesModule],
   controllers: [AppController],
   providers: [AppService, QueueGateway],
 })

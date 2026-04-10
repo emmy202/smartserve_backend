@@ -79,6 +79,14 @@ enum AssetStatus {
   LOST
 }
 
+enum CategoryType {
+  MENU
+  INVENTORY
+  EXPENSE
+  ASSET
+  ROOM
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   email     String   @unique
@@ -105,8 +113,8 @@ model MenuItem {
   description String?
   price       Float
   type        ItemType @default(FOOD)
-  categoryId  Int
-  category    MenuCategory @relation(fields: [categoryId], references: [id])
+  categoryId  Int?
+  category    Category? @relation(fields: [categoryId], references: [id])
   available   Boolean  @default(true)
   stockQuantity Int    @default(0)
   trackStock    Boolean @default(false)
@@ -117,10 +125,18 @@ model MenuItem {
   recipes    Recipe[]
 }
 
-model MenuCategory {
-  id    Int    @id @default(autoincrement())
-  name  String @unique
-  items MenuItem[]
+model Category {
+  id    Int          @id @default(autoincrement())
+  name  String
+  type  CategoryType @default(MENU)
+  
+  menuItems      MenuItem[]
+  inventoryItems InventoryItem[]
+  expenses       Expense[]
+  assets         Asset[]
+  rooms          Room[]
+
+  @@unique([name, type])
 }
 
 model Order {
@@ -174,7 +190,8 @@ model Expense {
   id          Int            @id @default(autoincrement())
   title       String
   amount      Float
-  category    String         @default("General")
+  categoryId  Int?
+  category    Category?      @relation(fields: [categoryId], references: [id])
   status      ApprovalStatus @default(PENDING)
   userId      Int
   user        User           @relation(fields: [userId], references: [id])
@@ -188,7 +205,8 @@ model Expense {
 model Room {
   id               Int        @id @default(autoincrement())
   number           String     @unique
-  type             String
+  categoryId       Int?
+  category         Category?   @relation(fields: [categoryId], references: [id])
   price            Float
   status           RoomStatus @default(AVAILABLE)
   currentCheckIn   DateTime?
@@ -276,12 +294,14 @@ model InventoryItem {
   id            Int      @id @default(autoincrement())
   name          String
   sku           String?  @unique
-  category      String   @default("General") // e.g. Raw Material, Cleaning, Stationary
+  categoryId    Int?
+  category      Category? @relation(fields: [categoryId], references: [id])
   unit          String   @default("piece") // kg, litre, bottle, piece, box
   currentStock  Float    @default(0)
   minimumStock  Float    @default(0)
   costPrice     Float    @default(0)
   sellingReferencePrice Float?
+  type          ItemType @default(FOOD)
   active        Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -331,7 +351,8 @@ model Recipe {
 model Asset {
   id              Int         @id @default(autoincrement())
   name            String
-  category        String      // Electronics, Furniture, Vehicle, Kitchen Equipment, Housekeeping
+  categoryId      Int?
+  category        Category?    @relation(fields: [categoryId], references: [id])
   serialNumber    String?     @unique
   purchaseDate    DateTime?
   purchasePrice   Float       @default(0)

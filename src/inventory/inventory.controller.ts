@@ -45,9 +45,9 @@ export class InventoryController {
 
   // --- Inventory Items ---
   @Get('items')
-  getItems(@Query('category') category?: string, @Query('active') active?: string) {
+  getItems(@Query('categoryId') categoryId?: string, @Query('active') active?: string) {
     return this.inventoryService.getItems({
-      category,
+      categoryId: categoryId ? +categoryId : undefined,
       active: active === undefined ? undefined : active === 'true'
     });
   }

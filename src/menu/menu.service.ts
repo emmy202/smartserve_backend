@@ -6,11 +6,14 @@ export class MenuService {
   constructor(private prisma: PrismaService) {}
 
   async createCategory(name: string) {
-    return this.prisma.menuCategory.create({ data: { name } });
+    return this.prisma.category.create({ data: { name, type: 'MENU' } });
   }
 
   async getCategories() {
-    return this.prisma.menuCategory.findMany({ include: { items: true } });
+    return this.prisma.category.findMany({ 
+      where: { type: 'MENU' },
+      include: { menuItems: true } 
+    });
   }
 
   async createMenuItem(data: any) {

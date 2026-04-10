@@ -11,8 +11,8 @@ export class ExpensesController {
   constructor(private readonly expensesService: ExpensesService) {}
 
   @Post()
-  create(@Request() req: any, @Body() body: { title: string, amount: number, category?: string, description?: string }) {
-    return this.expensesService.create(req.user.id, body.title, body.amount, body.category, body.description);
+  create(@Request() req: any, @Body() body: { title: string, amount: number, categoryId: number, description?: string }) {
+    return this.expensesService.create(req.user.id, body.title, body.amount, body.categoryId, body.description);
   }
 
   @Get()

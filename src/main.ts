@@ -6,7 +6,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const corsOrigins = process.env.CORS_ORIGINS === '*' 
     ? true 
-    : (process.env.CORS_ORIGINS?.split(',').map(o => o.trim().replace(/\/$/, '')) || ['http://localhost:5173', 'http://localhost:3001']);
+    : (process.env.CORS_ORIGINS?.split(',').map(o => o.trim().replace(/\/$/, '')) || ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3001']);
 
   app.enableCors({
     origin: corsOrigins,

@@ -5,13 +5,13 @@ import { PrismaService } from '../prisma/prisma.service';
 export class ExpensesService {
   constructor(private prisma: PrismaService) {}
 
-  async create(userId: number, title: string, amount: number, category: string = 'General', description?: string) {
+  async create(userId: number, title: string, amount: number, categoryId: number, description?: string) {
     return this.prisma.expense.create({
       data: { 
         userId,
         title, 
         amount, 
-        category, 
+        categoryId, 
         description,
         status: 'PENDING'
       }
@@ -28,7 +28,10 @@ export class ExpensesService {
     }
     return this.prisma.expense.findMany({
       where,
-      include: { user: { select: { name: true, role: true } } },
+      include: { 
+        user: { select: { name: true, role: true } },
+        category: true
+      },
       orderBy: { createdAt: 'desc' }
     });
   }
@@ -36,7 +39,10 @@ export class ExpensesService {
   async findByUser(userId: number) {
     return this.prisma.expense.findMany({
       where: { userId },
-      include: { user: { select: { name: true, role: true } } },
+      include: { 
+        user: { select: { name: true, role: true } },
+        category: true
+      },
       orderBy: { createdAt: 'desc' }
     });
   }

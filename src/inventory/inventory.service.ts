@@ -68,13 +68,16 @@ export class InventoryService {
   }
 
   // --- Inventory Items ---
-  async getItems(params: { category?: string; active?: boolean }) {
+  async getItems(params: { categoryId?: number; active?: boolean }) {
+    const where: any = { active: params.active };
+    if (params.categoryId) where.categoryId = +params.categoryId;
+
     return (this.prisma as any).inventoryItem.findMany({
-      where: { 
-        active: params.active,
-        category: params.category 
+      where,
+      include: { 
+        preferredSupplier: { select: { name: true } },
+        category: { select: { name: true } }
       },
-      include: { preferredSupplier: { select: { name: true } } },
       orderBy: { name: 'asc' }
     });
   }
@@ -82,7 +85,7 @@ export class InventoryService {
   async getLowStockItems() {
     const items = await (this.prisma as any).inventoryItem.findMany({
       where: { active: true },
-      include: { preferredSupplier: true },
+      include: { preferredSupplier: true, category: true },
       orderBy: { currentStock: 'asc' }
     });
     return items.filter((item: any) => item.currentStock <= item.minimumStock);
@@ -93,6 +96,7 @@ export class InventoryService {
       where: { id },
       include: { 
         preferredSupplier: true,
+        category: true,
         movements: { 
           orderBy: { createdAt: 'desc' },
           take: 20,
@@ -107,7 +111,7 @@ export class InventoryService {
   }
 
   async updateItem(id: number, data: any) {
-    const { id: _id, createdAt, updatedAt, preferredSupplier, ...cleanData } = data;
+    const { id: _id, createdAt, updatedAt, preferredSupplier, category, ...cleanData } = data;
     return (this.prisma as any).inventoryItem.update({
       where: { id },
       data: cleanData

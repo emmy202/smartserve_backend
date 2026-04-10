@@ -7,6 +7,9 @@ export class AssetsService {
 
   async findAll() {
     return this.prisma.asset.findMany({
+      include: {
+        category: true,
+      },
       orderBy: { createdAt: 'desc' },
     });
   }
